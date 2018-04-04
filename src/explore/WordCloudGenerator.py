@@ -28,5 +28,5 @@ if __name__ == '__main__':
         plt.axis("off")
         plt.title('Most Frequent Words in '+cat+' Comments', fontsize=20)
         plt.imshow(wc.recolor(colormap= 'viridis' , random_state=17), alpha=0.98)
-        plt.show()
         plt.savefig('../../results/figures/'+cat+'_wordcloud.jpg')
+        #plt.show()
