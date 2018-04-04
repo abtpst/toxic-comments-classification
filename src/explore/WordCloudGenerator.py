@@ -17,12 +17,12 @@ if __name__ == '__main__':
     categories=['toxic','severe_toxic','obscene','threat','insult','identity_hate','clean']
     
     for cat in categories:
-        clean_mask=np.array(Image.open('../../data/images/base.png'))
-        clean_mask=clean_mask[:,:,1]
+        clean_mask=np.array(Image.open('../../data/images/mask.jpg'))
+        #clean_mask=clean_mask[:,:,1]
         #wordcloud for clean comments
         subset=train.loc[train[cat]==1]
         text=subset.comment_text.values
-        wc= WordCloud(background_color="black",max_words=2000,mask=clean_mask,stopwords=mystops)
+        wc= WordCloud(background_color="white",max_words=2000,mask=clean_mask,stopwords=mystops)
         wc.generate(" ".join(text))
         plt.figure(figsize=(20,10))
         plt.axis("off")
