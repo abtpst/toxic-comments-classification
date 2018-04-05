@@ -6,27 +6,54 @@ Created on Apr 4, 2018
 import numpy.core.multiarray as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import pickle
 from wordcloud import WordCloud ,STOPWORDS
 from PIL import Image
 
-if __name__ == '__main__':
+class Clouder(object):
     
-    train = pd.read_csv('../../data/cleaned/train.csv')
-    test = pd.read_csv('../../data/cleaned/test.csv')
-    mystops=set(STOPWORDS)
-    categories=['toxic','severe_toxic','obscene','threat','insult','identity_hate','clean']
+    train = None
+    test = None
+    mystops=None
+    categories=None
+    nasties=None
+    nasty_path=None
     
-    for cat in categories:
-        clean_mask=np.array(Image.open('../../data/images/mask.jpg'))
-        #clean_mask=clean_mask[:,:,1]
-        #wordcloud for clean comments
-        subset=train.loc[train[cat]==1]
-        text=subset.comment_text.values
-        wc= WordCloud(background_color="white",max_words=2000,mask=clean_mask,stopwords=mystops)
-        wc.generate(" ".join(text))
-        plt.figure(figsize=(20,10))
-        plt.axis("off")
-        plt.title('Most Frequent Words in '+cat+' Comments', fontsize=20)
-        plt.imshow(wc.recolor(colormap= 'viridis' , random_state=17), alpha=0.98)
-        plt.savefig('../../results/figures/'+cat+'_wordcloud.jpg')
-        #plt.show()
+    def __init__(self,params):
+        
+        self.train = pd.read_csv(params['train'])
+        self.test = pd.read_csv(params['test'])
+        if 'stops' in params:
+            self.mystops = params['stops']
+        else:
+            self.mystops=set(STOPWORDS)
+        if 'categories' in params:
+            self.categories=params['categories']
+        else:
+            self.categories=['toxic','severe_toxic','obscene','threat','insult','identity_hate','clean']
+        self.nasties=set()
+        self.nasty_path='../../data/nasties.pkl'
+    
+    def generate_word_clouds(self):
+        for cat in self.categories:
+            clean_mask=np.array(Image.open('../../data/images/mask.jpg'))
+            #clean_mask=clean_mask[:,:,1]
+            #wordcloud for clean comments
+            subset=self.train.loc[self.train[cat]==1]
+            text=subset.comment_text.values
+            if cat!='clean':
+                for word in text:
+                    self.nasties.add(word)
+                    
+            wc= WordCloud(background_color="white",max_words=2000,mask=clean_mask,stopwords=self.mystops)
+            wc.generate(" ".join(text))
+            plt.figure(figsize=(20,10))
+            plt.axis("off")
+            plt.title('Most Frequent Words in '+cat+' Comments', fontsize=20)
+            plt.imshow(wc.recolor(colormap= 'viridis' , random_state=17), alpha=0.98)
+            plt.savefig('../../results/figures/'+cat+'_wordcloud.jpg')
+            #plt.show()
+            pickle.dump(self.nasties,self.nasty_path,pickle.HIGHEST_PROTOCOL)
+    
+    def get_nasties(self):
+        return self.nasties

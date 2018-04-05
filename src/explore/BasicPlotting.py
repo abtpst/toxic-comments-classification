@@ -7,7 +7,6 @@ Created on Apr 4, 2018
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
 if __name__ == '__main__':
     
     color = sns.color_palette()
