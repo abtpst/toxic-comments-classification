@@ -39,31 +39,31 @@ class FeaturePlotter(object):
         train_tags=train.iloc[:,2:]
         train_feats=pd.concat([train_feats,train_tags],axis=1)
         
-        train_feats['count_sent'].loc[train_feats['count_sent']>10] = 10 
+        train_feats['number_of_sentences'].loc[train_feats['number_of_sentences']>10] = 10 
         plt.figure(figsize=(12,6))
 
         plt.subplot(121)
         plt.suptitle("Toxicity With Respect To Number Of Words",fontsize=20)
-        sns.violinplot(y='count_sent',x='clean', data=train_feats,split=True)
+        sns.violinplot(y='number_of_sentences',x='clean', data=train_feats,split=True)
         plt.xlabel('Clean?', fontsize=12)
         plt.ylabel('# of sentences', fontsize=12)
         plt.title("Number of sentences in each comment", fontsize=15)
         # words
-        train_feats['count_word'].loc[train_feats['count_word']>200] = 200
+        train_feats['number_of_words'].loc[train_feats['number_of_words']>200] = 200
         plt.subplot(122)
-        sns.violinplot(y='count_word',x='clean', data=train_feats,split=True,inner="quart")
+        sns.violinplot(y='number_of_words',x='clean', data=train_feats,split=True,inner="quart")
         plt.xlabel('Clean?', fontsize=12)
         plt.ylabel('# of words', fontsize=12)
         plt.title("Number of words in each comment", fontsize=15)
         plt.savefig(self.save_path+'Toxicity_With_Respect_To_Number_Of_Words')
         plt.show()
         
-        train_feats['count_unique_word'].loc[train_feats['count_unique_word']>200] = 200
+        train_feats['number_of_unique_words'].loc[train_feats['number_of_unique_words']>200] = 200
         #prep for split violin plots
         #For the desired plots , the data must be in long format
-        temp_df = pd.melt(train_feats, value_vars=['count_word', 'count_unique_word'], id_vars='clean')
+        temp_df = pd.melt(train_feats, value_vars=['number_of_words', 'number_of_unique_words'], id_vars='clean')
         #spammers - comments with less than 40% unique words
-        spammers=train_feats[train_feats['word_unique_percent']<30]
+        spammers=train_feats[train_feats['percentage_of_unique_words']<30]
         plt.figure(figsize=(16,12))
         plt.suptitle("What's so unique ?",fontsize=20)
         gridspec.GridSpec(2,2)
@@ -75,9 +75,9 @@ class FeaturePlotter(object):
         
         plt.subplot2grid((2,2),(0,1))
         plt.title("Percentage of unique words of total words in comment")
-        #sns.boxplot(x='clean', y='word_unique_percent', data=train_feats)
-        ax=sns.kdeplot(train_feats[train_feats.clean == 0].word_unique_percent, label="Bad",shade=True,color='r')
-        ax=sns.kdeplot(train_feats[train_feats.clean == 1].word_unique_percent, label="Clean")
+        #sns.boxplot(x='clean', y='percentage_of_unique_words', data=train_feats)
+        ax=sns.kdeplot(train_feats[train_feats.clean == 0].percentage_of_unique_words, label="Bad",shade=True,color='r')
+        ax=sns.kdeplot(train_feats[train_feats.clean == 1].percentage_of_unique_words, label="Clean")
         plt.legend()
         plt.ylabel('Number of occurances', fontsize=12)
         plt.xlabel('Percent unique words', fontsize=12)

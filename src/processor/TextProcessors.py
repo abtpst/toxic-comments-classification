@@ -6,7 +6,10 @@ Created on Apr 4, 2018
 import nltk
 import string
 import numpy as np
+import emoji
+import re
 from nltk.corpus import stopwords
+
 class TextAnalyzer(object):
     '''
     Class for analyzing certain properties of text
@@ -31,11 +34,13 @@ class TextAnalyzer(object):
         total_stopwords=0
         mean_length_of_words=0;
         num_nasties=0
+        num_emojis=0
         for sentence in sentence_list:
             words = nltk.word_tokenize(sentence)
             mean_length_of_words=mean_length_of_words+np.mean([len(w) for w in words])
             unique_words.update(words)
             total_words=total_words+len(words)
+            num_emojis=num_emojis+self.extract_emojis(sentence)
             for word in words:
                 total_letters=total_letters+len(word)
                 if word.isupper():
@@ -47,6 +52,18 @@ class TextAnalyzer(object):
                 if word in self.my_stopwords:
                     total_stopwords=total_stopwords+1
                 if nasties is not None and len(nasties)>0:
-                    num_nasties=num_nasties+1
+                    if word.lower() in nasties and word not in string.punctuation and word.lower() not in self.my_stopwords:
+                        num_nasties=num_nasties+1
         
-        return len(sentence_list),total_words,len(unique_words),total_letters,total_punctuations,total_upper_case_words,total_title_words,total_stopwords,mean_length_of_words,num_nasties
+        return len(sentence_list),total_words,len(unique_words),total_letters,total_punctuations,total_upper_case_words,total_title_words,total_stopwords,mean_length_of_words,num_nasties,num_emojis
+    
+    def extract_emojis(self,sentence):
+        emoji_list = []
+
+        data = re.findall(r'[^a-zA-Z\d\s\n]', sentence)
+        for word in data:
+            if word not in string.punctuation and len(word)>0:
+                emoji_list.append(word)
+        if len(emoji_list)>0:
+            print('Found emojis ',emoji_list)
+        return len(emoji_list)

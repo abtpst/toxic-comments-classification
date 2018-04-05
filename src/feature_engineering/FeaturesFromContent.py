@@ -6,6 +6,8 @@ Created on Apr 4, 2018
 import os
 import pickle
 import pandas as pd
+import progressbar
+progressbar.streams.flush()
 from processor.TextProcessors import TextAnalyzer
 
 class DirectFeatures(object):
@@ -27,10 +29,16 @@ class DirectFeatures(object):
         
         self._direct_save_path='../../data/cleaned/direct_features.csv'
         if os.path.exists(self._direct_save_path):
-            self._direct_features=pd.read_csv(self._direct_save_path)
-            
+            if 'purge' in params:
+                if not params['purge']:
+                    self._direct_features=pd.read_csv(self._direct_save_path)
+                else:
+                    os.remove(self._direct_save_path)
+            else:
+                self._direct_features=pd.read_csv(self._direct_save_path)
+                
         if 'nasty_path' in params:
-            with open(params['nasties'],'rb') as nasty:
+            with open(params['nasty_path'],'rb') as nasty:
                 self.nasties = pickle.load(nasty)
         
         if 'nasties' in params:
@@ -42,11 +50,12 @@ class DirectFeatures(object):
             self._direct_features = pd.concat([self._train.iloc[:,1:3],self._test.iloc[:,1:3]])
             self._direct_features=self._direct_features.reset_index(drop=True)
     
+        bar = progressbar.ProgressBar(widgets=[' [', progressbar.Timer(), '] ',progressbar.Bar(),' (', progressbar.ETA(), ') ',])
         ta=TextAnalyzer({})
-        for index, row in self._direct_features.iterrows():
-            row = row.copy()
+        for index in bar(range(len(self._direct_features))):
+            row=self._direct_features.loc[index]
             comment=row.comment_text
-            num_sentences,num_words,num_unique_words,num_letters,num_punctuations,num_uppers,num_titles,num_stops,mean_length,num_nasties = ta.get_metrics(comment,self.nasties)
+            num_sentences,num_words,num_unique_words,num_letters,num_punctuations,num_uppers,num_titles,num_stops,mean_length,num_nasties,num_emojis = ta.get_metrics(comment,self.nasties)
             self._direct_features.loc[index, 'number_of_sentences'] = num_sentences
             self._direct_features.loc[index, 'number_of_words'] = num_words
             self._direct_features.loc[index, 'number_of_unique_words'] = num_unique_words
@@ -57,10 +66,12 @@ class DirectFeatures(object):
             self._direct_features.loc[index, 'number_of_stop_words'] = num_stops
             self._direct_features.loc[index, 'mean_length_of_words'] = mean_length
             self._direct_features.loc[index, 'number_of_nasty_words'] = num_nasties
+            self._direct_features.loc[index, 'number_of_emojis'] = num_emojis
             self._direct_features.loc[index, 'percentage_of_unique_words'] = (100*num_unique_words/num_words)
             self._direct_features.loc[index, 'percentage_of_punctuations'] = (100*num_punctuations/num_words)
             self._direct_features.loc[index, 'percentage_of_nasty_words'] = (100*num_nasties/num_words)
-            print('done for {}'.format(index))
+            self._direct_features.loc[index, 'percentage_of_emojis'] = (100*num_emojis/num_words)
+        
         self._direct_features.to_csv(self._direct_save_path)
     
     def get_direct_features(self):
