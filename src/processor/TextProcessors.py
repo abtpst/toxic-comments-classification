@@ -142,7 +142,9 @@ class TextAnalyzer(object):
         
         comment=input.lower()
         #remove \n
-        comment=re.sub("\\n","",comment)
+        comment=re.sub("\\n"," ",comment)
+        comment=re.sub("\\s+"," ",comment)
+        comment=re.sub("\\t"," ",comment)
         # remove leaky elements like ip,user
         comment=re.sub("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}","",comment)
         #removing usernames
@@ -153,6 +155,7 @@ class TextAnalyzer(object):
         words=[self.my_apostrophes[word] if word in self.my_apostrophes else word for word in words]
         words=[self.my_lemmatizer.lemmatize(word, "v") for word in words]
         words = [w for w in words if not w in self.my_stopwords]
+        words = [w.lower() for w in words]
         
         clean_sent=" ".join(words)
         # remove any non alphanum,digit character

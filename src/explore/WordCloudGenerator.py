@@ -39,25 +39,39 @@ class Clouder(object):
     def generate_word_clouds(self):
         
         bar = progressbar.ProgressBar(widgets=[' [', progressbar.Timer(), '] ',progressbar.Bar(),' (', progressbar.ETA(), ') ',])
-        nasty_list=[]
-        clean_set=set()
+        
+        clean_mask=np.array(Image.open('../../data/images/mask.jpg'))
+        
+        nasty_subset=self.train.loc[(self.train['toxic']==1) & 
+                                    (self.train['severe_toxic']==1) & 
+                                    (self.train['obscene']==1) & 
+                                    (self.train['threat']==1) & 
+                                    (self.train['identity_hate']==1) & 
+                                    (self.train['insult']==1)]
+        nasty_text=[n.lower() for n in nasty_subset.comment_text.values]
+        self.nasties=[]
+        for n in nasty_text:
+            if n is not None and len(n)>0:
+                self.nasties.extend(n.split())
+        
+        wc= WordCloud(background_color="white",max_words=2000,mask=clean_mask,stopwords=self.mystops)
+        wc.generate(" ".join(self.nasties))
+        plt.figure(figsize=(20,10))
+        plt.axis("off")
+        plt.title('Most Frequent Nasty Words', fontsize=20)
+        plt.imshow(wc.recolor(colormap= 'viridis' , random_state=17), alpha=0.98)            
+        plt.savefig('../../results/figures/nasty_wordcloud.jpg')
+        #plt.show()
+        with open(self.nasty_path,'wb') as nasty_out:
+            pickle.dump(self.nasties,nasty_out,pickle.HIGHEST_PROTOCOL)
+            
         for index in bar(range(len(self.categories))):
             cat=self.categories[index]
-            current_nasty=set()
-            clean_mask=np.array(Image.open('../../data/images/mask.jpg'))
             #clean_mask=clean_mask[:,:,1]
             #wordcloud for clean comments
             subset=self.train.loc[self.train[cat]==1]
             text=subset.comment_text.values
-            for sentence in text:
-                for word in sentence.split():
-                    if cat!='clean':
-                        current_nasty.add(word.lower())
-                    else:
-                        clean_set.add(word.lower())
-                if len(current_nasty)>0:
-                    nasty_list.append(current_nasty)
-                
+            
             wc= WordCloud(background_color="white",max_words=2000,mask=clean_mask,stopwords=self.mystops)
             wc.generate(" ".join(text))
             plt.figure(figsize=(20,10))
@@ -66,10 +80,6 @@ class Clouder(object):
             plt.imshow(wc.recolor(colormap= 'viridis' , random_state=17), alpha=0.98)
             plt.savefig('../../results/figures/'+cat+'_wordcloud.jpg')
             #plt.show()
-        
-        self.nasties=set.intersection(*nasty_list).difference(clean_set)
-        with open(self.nasty_path,'wb') as nasty_out:
-            pickle.dump(self.nasties,nasty_out,pickle.HIGHEST_PROTOCOL)
-    
+
     def get_nasties(self):
         return self.nasties
