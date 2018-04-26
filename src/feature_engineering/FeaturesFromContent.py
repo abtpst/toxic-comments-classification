@@ -108,21 +108,18 @@ class DerivedFeatures(Features):
     
         super(DerivedFeatures, self).__init__(params)
         
-        self._save_path='../../data/cleaned/derived_features.csv'
         self._corpus_save_path='../../data/cleaned/corpus.csv'
         self.feature_path='../../data/features/'
 
-        if os.path.exists(self._save_path):
+        if os.path.exists(self._corpus_save_path):
             if 'purge' in params:
                 if not params['purge']:
-                    self._features_data_frame=pd.read_csv(self._save_path)
+                    self.corpus=pd.read_csv(self._corpus_save_path)
                 else:
-                    os.remove(self._save_path)
+                    os.remove(self._corpus_save_path)
             else:
-                self._features_data_frame=pd.read_csv(self._save_path)
-            
-            self.corpus=self._features_data_frame.comment_text
-                
+                self.corpus=pd.read_csv(self._corpus_save_path)
+        
     def generate_corpus(self): 
         if self._merged_data_frame is None:  
             self._merged_data_frame = pd.concat([self._train.iloc[:,1:3],self._test.iloc[:,1:3]])
@@ -135,13 +132,15 @@ class DerivedFeatures(Features):
             row=self._merged_data_frame.loc[index]
             comment=row.comment_text
             self.corpus.loc[index, 'sanitized_comment'] = ta.get_sanitized(comment)
-            
+        
+        self.corpus=self.corpus.dropna(axis=0,how='any')
         self.corpus.to_csv(self._corpus_save_path)
     
     def generate_features(self): 
          
         if os.path.exists(self._corpus_save_path):
             self.corpus=pd.read_csv(self._corpus_save_path)
+            self.corpus = self.corpus[self.corpus['sanitized_comment'].notnull()]
         else:
             print('Corpus not found')
             return
@@ -149,15 +148,17 @@ class DerivedFeatures(Features):
         clean_text=self.corpus.sanitized_comment
         for key, range_ngram in self._ngram_ranges.items():
             print('Generating for ',key)
+            
             tf_idf_vectorizer = TfidfVectorizer(min_df=200,  max_features=10000, 
                 strip_accents='unicode', analyzer='word',ngram_range=range_ngram,
                 use_idf=1,smooth_idf=1,sublinear_tf=1,
                 stop_words = 'english')
+            
             tf_idf_vectorizer.fit(clean_text)
-            self.features = np.array(tf_idf_vectorizer.get_feature_names())
+            features = np.array(tf_idf_vectorizer.get_feature_names())
             
             with open(self.feature_path+key+'Features.pkl','wb') as feature_out:
-                pickle.dump(self.features,feature_out,pickle.HIGHEST_PROTOCOL)
+                pickle.dump(features,feature_out,pickle.HIGHEST_PROTOCOL)
             
             with open(self.feature_path+key+'Vectorizer.pkl','wb') as vectorizer_out:
                 pickle.dump(tf_idf_vectorizer,vectorizer_out,pickle.HIGHEST_PROTOCOL)
