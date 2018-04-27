@@ -103,3 +103,4 @@ ENV/
 .project
 .pydev*
 data/
+logs/

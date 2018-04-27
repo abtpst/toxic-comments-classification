@@ -8,6 +8,11 @@ import pickle
 import pandas as pd
 import progressbar
 progressbar.streams.flush()
+import logging
+from hub import Constants
+from logging.config import dictConfig
+dictConfig(Constants.logging_config)
+logger = logging.getLogger()
 from processor.TextProcessors import TextAnalyzer
 
 class Features(object):
@@ -17,7 +22,7 @@ class Features(object):
     _save_path=None
 
     def __init__(self,params):
-        
+        logger.debug("Initializing Features")
         if 'train' in params and 'test' in params:
             self._train = pd.read_csv(params['train'])
             self._test = pd.read_csv(params['test'])
@@ -32,8 +37,8 @@ class DirectFeatures(Features):
     
     def __init__(self, params):
     
-        super(DirectFeatures, self).__init__(params)
-        
+        super().__init__(params)
+        logger.debug("Initializing DirectFeatures")
         self._save_path='../../data/cleaned/direct_features.csv'
         if os.path.exists(self._save_path):
             if 'purge' in params:
@@ -106,7 +111,7 @@ class DerivedFeatures(Features):
     
     def __init__(self, params):
     
-        super(DerivedFeatures, self).__init__(params)
+        super().__init__(params)
         
         self._corpus_save_path='../../data/cleaned/corpus.csv'
         self.feature_path='../../data/features/'
@@ -163,8 +168,11 @@ class DerivedFeatures(Features):
             with open(self.feature_path+key+'Vectorizer.pkl','wb') as vectorizer_out:
                 pickle.dump(tf_idf_vectorizer,vectorizer_out,pickle.HIGHEST_PROTOCOL)
   
+    def get_corpus(self):
+        return self.corpus
+    
     def get_ngram_ranges(self):
-        return self.get_ngram_ranges
+        return self._ngram_ranges
     
     def get_feature_path(self):
         return self.feature_path

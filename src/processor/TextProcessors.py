@@ -8,9 +8,15 @@ import string
 import numpy as np
 import emoji
 import re
+import logging
+from hub import Constants
+from logging.config import dictConfig
+dictConfig(Constants.logging_config)
+logger = logging.getLogger()
 from nltk import pos_tag
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer 
+from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from nltk.tokenize import TweetTokenizer
 
@@ -22,14 +28,17 @@ class TextAnalyzer(object):
     my_apostrophes=None
     my_tokenizer=None
     my_lemmatizer=None
+    my_stemmer=None
     
     def __init__(self, params):
         '''
         Constructor
         '''
+        logger.debug("Initializing TextAnalyzer")
         nltk.data.path.append('../../nltkData')
         self.my_tokenizer=TweetTokenizer()
         self.my_lemmatizer= WordNetLemmatizer()
+        self.my_stemmer=PorterStemmer()
         self.my_stopwords = set(stopwords.words("english"))
         self.my_apostrophes={
                             "aren't" : "are not",
@@ -139,7 +148,7 @@ class TextAnalyzer(object):
         return len(emoji_list)
     
     def get_sanitized(self,input):
-        
+        logger.debug("Will try to sanitize {}".format(input))
         comment=input.lower()
         #remove \n
         comment=re.sub("\\n"," ",comment)
@@ -153,10 +162,16 @@ class TextAnalyzer(object):
         words=self.my_tokenizer.tokenize(comment)
         
         words=[self.my_apostrophes[word] if word in self.my_apostrophes else word for word in words]
-        words=[self.my_lemmatizer.lemmatize(word, "v") for word in words]
+        #words=[self.my_lemmatizer.lemmatize(word, "v") for word in words]
+        '''
+        To avoid RecursionError: maximum recursion depth exceeded in comparison
+        '''
+        logger.debug("Words before stemming {}".format(words))
+        words=[self.my_stemmer.stem(word) for word in words if len(word)<=45]
+        
         words = [w for w in words if not w in self.my_stopwords]
         words = [w.lower() for w in words]
-        
+        #words = [w for w in words if len(w)>1]
         clean_sent=" ".join(words)
         # remove any non alphanum,digit character
         clean_sent=re.sub("\W+"," ",clean_sent)

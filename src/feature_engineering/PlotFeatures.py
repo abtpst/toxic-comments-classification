@@ -7,6 +7,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec 
+from feature_engineering.FeaturesFromContent import DirectFeatures,DerivedFeatures
 
 class Plotter(object):
     '''
@@ -30,8 +31,8 @@ class DirectFeaturesPlotter(Plotter):
         '''
         Constructor
         '''
-        super(Plotter, self).__init__(params)
-        if type(self.features_object) != 'DirectFeatures':
+        super().__init__(params)
+        if not isinstance(self.features_object,DirectFeatures):
             print('Must provide a DirectFeatures object in params. Use \'features\' as key')
             raise StopIteration
         
@@ -125,14 +126,16 @@ class DerivedFeaturesPlotter(Plotter):
         '''
         Constructor
         '''
-        super(Plotter, self).__init__(params)
-        if type(self.features_object) != 'DerivedFeatures':
+        super().__init__(params)
+        
+        if not isinstance(self.features_object,DerivedFeatures):
             print('Must provide a DerivedFeatures object in params. Use \'features\' as key')
             raise StopIteration
     
     def generate_plots(self):
         
-        clean_text=self.features_object.get_corpus().sanitized_comment
+        corpus=self.features_object.get_corpus()
+        clean_text=corpus[corpus['sanitized_comment'].notnull()]
         
         for key in self.features_object.get_ngram_ranges():
             print('Plotting for ',key)
@@ -140,9 +143,11 @@ class DerivedFeaturesPlotter(Plotter):
                 tf_idf_vectorizer=pickle.load(vect)
             with open(self.features_object.get_feature_path()+key+'Features.pkl','rb') as feature_in:
                 features=pickle.load(feature_in)
-                
-            train_unigrams =  tf_idf_vectorizer.transform(clean_text.iloc[:self.features_object.get_train().shape[0]])
-            test_unigrams = tf_idf_vectorizer.transform(clean_text.iloc[self.features_object.get_test().shape[0]:])
+            
+            train_df=self.features_object.get_train()
+     
+            train_unigrams =  tf_idf_vectorizer.transform(clean_text[:train_df.shape[0]].sanitized_comment)
+            test_unigrams = tf_idf_vectorizer.transform(clean_text.iloc[train_df.shape[0]:].sanitized_comment)
             
             tfidf_top_n_per_class=self.top_feats_by_class(train_unigrams,features)
             
@@ -198,16 +203,16 @@ class DerivedFeaturesPlotter(Plotter):
         plt.title("class : Clean",fontsize=15)
         plt.xlabel('Word', fontsize=12)
         plt.ylabel('TF-IDF score', fontsize=12)
-        
+        plt.savefig(self.save_path+"TF_IDF_Top_"+moniker+"_per_Class")
         plt.show()
         
     def top_tfidf_feats(self,row, features, top_n=25):
         ''' Get top n tfidf values in row and return them with their corresponding feature names.'''
-        if self.features is None:
+        if features is None:
             print('Could not load features')
             return
         topn_ids = np.argsort(row)[::-1][:top_n]
-        top_feats = [(self.features[i], row[i]) for i in topn_ids]
+        top_feats = [(features[i], row[i]) for i in topn_ids]
         df = pd.DataFrame(top_feats)
         df.columns = ['feature', 'tfidf']
         return df
@@ -219,7 +224,7 @@ class DerivedFeaturesPlotter(Plotter):
     
     def top_mean_feats(self,Xtr, features, grp_ids, min_tfidf=0.1, top_n=25):
         ''' Return the top n features that on average are most important amongst documents in rows
-            indentified by indices in grp_ids. '''
+            identified by indices in grp_ids. '''
         
         D = Xtr[grp_ids].toarray()
     
@@ -234,10 +239,11 @@ class DerivedFeaturesPlotter(Plotter):
     # modified for multilabel milticlass
     def top_feats_by_class(self,Xtr, features, min_tfidf=0.1, top_n=20):
        
+        train_df=self.features_object.get_train()
         dfs = []
-        cols=self._train.columns
+        cols=['toxic','severe_toxic','obscene','threat','insult','identity_hate','clean']
         for col in cols:
-            ids = self._train.index[self._train[col]==1]
+            ids = train_df.index[train_df[col]==1]
             feats_df = self.top_mean_feats(Xtr, features, ids, min_tfidf=min_tfidf, top_n=top_n)
             #feats_df.label = label
             dfs.append(feats_df)
