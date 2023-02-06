@@ -7,7 +7,7 @@ https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
 ## Approach
 We will try to plot various charactersitics of the text in order to derive some insights.
 
-1. Examine the shpae of the training data and plot countsfor each category
+1. Examine the shape of the training data and plot countsfor each category
 2. Figure out how many comments are not toxic at all
 3. Generate word clouds per category
 4. Create some direct features such as number of words, number of unique words, fraction of stopwords etc. These features will be created using the raw text
